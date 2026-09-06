@@ -80,7 +80,6 @@ class FileUploadService
             $constraint->upsize();
         });
 
-        //dd($image);
         //$image->save(public_path().'/thumbnails/b.jpg');
     }
 
@@ -103,7 +102,6 @@ class FileUploadService
         $newFileName = $imageOriginalName . '-' . uniqid() . '-' . $type . '.' . $imageExtenstion;
         $findUploadPath = $this->findUploadPath($type);
         $uploadPath = $findUploadPath . $newFileName;
-        //dd($uploadPath);
         $image->save($uploadPath);
         return $newFileName;
 
@@ -112,10 +110,12 @@ class FileUploadService
     private function findUploadPath($type): string
     {
         return match ($type) {
-            'avatars'=>"uploads/{$type}/",
-            'small','medium','large'=>"uploads/thumbnails/{$type}/",
-            default =>"uploads/file_manager/{$type}/",
+            'avatars' => public_path("uploads/{$type}") . DIRECTORY_SEPARATOR,
+            'small', 'medium', 'large' => public_path("uploads/thumbnails/{$type}") . DIRECTORY_SEPARATOR,
+            default => public_path('uploads/file_manager') . DIRECTORY_SEPARATOR,
         };
 
     }
 }
+
+

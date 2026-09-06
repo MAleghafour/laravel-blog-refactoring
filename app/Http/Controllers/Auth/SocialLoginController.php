@@ -26,7 +26,6 @@ class SocialLoginController extends Controller
     {
         //Return User Data From Driver (google|github|...)
         $user = Socialite::driver($driver)->user();
-        //dd($user);
         $isCurrentUserExist = User::where('email' ,$user->getEmail())->first();
 
         //True => Login;

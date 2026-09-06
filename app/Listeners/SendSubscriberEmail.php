@@ -22,7 +22,6 @@ class SendSubscriberEmail
      */
     public function handle(UserSubscribed $event): void
     {
-        //dd('Listener Waiting ' . $event->name);
         Mail::raw('با تشکر از شما بابت عضوبت در خبرنامه بلاگ زین',function ($message) use ($event){
                 $message->to($event->user->email);
                 $message->subject('خوش آمدید به خبرنامه بلاگ زین');

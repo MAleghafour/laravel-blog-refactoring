@@ -25,7 +25,6 @@ class CategoryController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        //dd($request);
         $request->validate([
             'name' => ['required', 'string', 'max:50', 'unique:categories,name'],
             'slug' => ['required', 'string', 'max:50', 'unique:categories,slug'],
@@ -61,7 +60,6 @@ class CategoryController extends Controller
 
     public function update(Request $request, $id) :RedirectResponse
     {
-        //dd($request,$id);
         $category = Category::findOrfail($id);
         $request->validate([
             'name' => ['required', 'string', 'max:50'],
@@ -82,7 +80,6 @@ class CategoryController extends Controller
     }
 
     public function destroy(int $id): RedirectResponse{
-        //dd($id);
         $category = Category::findOrfail($id);
         //$category->articles()->delete();
         $categoryDestroy = $category->delete();

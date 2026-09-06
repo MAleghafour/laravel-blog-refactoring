@@ -16,9 +16,7 @@ class RoleMiddleware
      */
     public function handle(Request $request, Closure $next,$roles): Response
     {
-        //dd($roles);
 $roles = explode("|",$roles);
-//dd($roles);
 //        if(!Auth::check() || !in_array(Auth::user()->role,$roles)){
 //
 //        }

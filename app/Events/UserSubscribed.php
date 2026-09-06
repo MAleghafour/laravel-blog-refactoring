@@ -16,7 +16,6 @@ class UserSubscribed
      */
     public function __construct(public User $user)
     {
-        //dd('Event Call' . $name);
     }
 
 

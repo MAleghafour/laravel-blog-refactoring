@@ -26,9 +26,6 @@ class AuthController extends Controller
     //Register or Create New User
     public function register(Request $request): RedirectResponse
     {
-        //dd('connected!');
-        // dd($request);
-        //dd($request->name);
         $fields = $request->validate([
             'name' => ['required', 'min:5', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users'],
@@ -86,7 +83,6 @@ class AuthController extends Controller
                 'password.required' => 'کلمه عبور خود را وارد نمایید!',
             ]
         );
-        //dd($request);
         if (Auth::attempt($credentials, $request->remember)) {
             $request->session()->regenerate();
             return redirect()->route('home')->withErrors([
@@ -110,7 +106,6 @@ class AuthController extends Controller
 
     public function sendResetPasswordLink(Request $request) :RedirectResponse
     {
-//dd($request);
         $request->validate([
             'email' => ['required','email']
         ],[
@@ -134,7 +129,6 @@ class AuthController extends Controller
 
     public function passwordUpdate(Request $request)
     {
-        //dd($request);
         $request->validate([
             'token' => ['required'],
             'email' => ['required','email'],

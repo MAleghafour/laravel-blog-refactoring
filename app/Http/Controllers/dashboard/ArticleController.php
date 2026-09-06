@@ -39,30 +39,12 @@ class ArticleController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreUpdateArticle $request,FileUploadService $FileUploadService)
+    public function store(StoreUpdateArticle $request)
     {
-//dd($request);
         $article = $request->validated();
-        /*$article->merge([
-            'author_id'=>1
-        ]);*/
-        //$article['author_id'] = auth()->id();
         if($request->hasFile('thumbnail')){
-            //Upload With Move Method
             $image = $request->file('thumbnail');
-//            //dd($file);
-//            $fileName = time().'.'. $file->getClientOriginalName();
-//            $file->move(public_path('uploads'),$fileName);
-
-            //Upload With Store Method
-            //$file = $request->file('thumbnail');
-            /*$imagePath = $file->store('images/thumbnail','public');*/
-            //Upload With storeAs Method
-            /*$fileName = time().'.'. $file->getClientOriginalName();
-            $imagePath = $file->storeAs('images/thumbnail',$fileName,'public');
-            $article['thumbnail'] = $imagePath;*/
             $thumbnails = $this->FileUploadService->fileUpload($image,false,true);
-            //dd($article);
             $article = array_merge($article,$thumbnails);
         }
 

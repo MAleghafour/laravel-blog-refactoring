@@ -35,14 +35,12 @@ class GoogleCaptchaV3 implements ValidationRule
             'failScore'=>'امتیاز دریافت شده شما از سیستم احراز هویت گوگل پایین تر از حد مجاز است ! مجددا تلاش نمایید.'
 
         ];
-        //dd($siteVerify);
         if ($siteVerify->failed()) {
             $fail($message['fail']);
             return;
         }
         if ($siteVerify->successful()) {
             $body = $siteVerify->json();
-            //dd($body);
             if ($body['success'] === false) {
                 $fail($message['error']);
                 return;
