@@ -2,14 +2,15 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\dashboard\Article;
 use App\Notifications\CustomResetPasswordNotification;
 use Illuminate\Contracts\Auth\CanResetPassword;
-
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Auth\Notifications\ResetPassword;
+
 class User extends Authenticatable implements CanResetPassword
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
@@ -28,7 +29,7 @@ class User extends Authenticatable implements CanResetPassword
         'driver_id'
 
     ];
-    protected $guarded=[];
+
     /**
      * The attributes that should be hidden for serialization.
      *
@@ -50,6 +51,11 @@ class User extends Authenticatable implements CanResetPassword
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function articles(): HasMany
+    {
+        return $this->hasMany(Article::class, 'author_id');
     }
 
     public function sendPasswordResetNotification($token) :void{

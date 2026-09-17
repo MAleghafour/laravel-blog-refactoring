@@ -15,14 +15,6 @@ class Category extends Model
         'icon'
     ];
 
-    protected  static function boot()
-    {
-        parent::boot();
-        static::deleting(function ($category)
-        {
-            $category->articles()->delete();
-        });
-    }
 
     public function articles(): hasMany
     {
