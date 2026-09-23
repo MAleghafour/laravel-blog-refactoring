@@ -82,6 +82,6 @@ Route::prefix('/auth')->middleware('guest')->group(function() {
 
 //Auth Social Login-Register
 
-    Route::get('auth/{driver}/redirect', [SocialLoginController::class, 'redirect'])->name('auth.redirect');
-    Route::get('auth/{driver}/callback', [SocialLoginController::class, 'callback'])->name('auth.callback');
+    Route::get('/{driver}/redirect', [SocialLoginController::class, 'redirect'])->name('auth.redirect');
+    Route::get('/{driver}/callback', [SocialLoginController::class, 'callback'])->name('auth.callback');
 });

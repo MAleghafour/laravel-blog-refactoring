@@ -15,17 +15,20 @@ use Laravel\Socialite\Facades\Socialite;
 
 class SocialLoginController extends Controller
 {
-    //
 
     public function redirect($driver): RedirectResponse
     {
-        //User Send Email To Driver (google|github|...)
+        abort_unless(in_array($driver, ['google', 'github'], true), 404);
+
         return Socialite::driver($driver)->redirect();
     }
     public function callback($driver) :RedirectResponse
     {
         //Return User Data From Driver (google|github|...)
+        abort_unless(in_array($driver, ['google', 'github'], true), 404);
+
         $user = Socialite::driver($driver)->user();
+
         $isCurrentUserExist = User::where('email' ,$user->getEmail())->first();
 
         //True => Login;
@@ -46,7 +49,9 @@ class SocialLoginController extends Controller
                 Auth::login( $NewUser);
                 Session::regenerate();
                 //Send Mail
-                Mail::to($user->getEmail())->send(new WelcomeMail(Auth::user(),  $password,false,true));
+                Mail::to($user->getEmail())->send(
+                    new WelcomeMail($NewUser)
+                );
                 return redirect()->intended('/')->with('success',''.$user->getName().' خوش آمدید ');
             }
         //False => Register =>login

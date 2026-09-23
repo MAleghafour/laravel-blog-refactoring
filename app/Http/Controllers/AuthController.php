@@ -2,59 +2,37 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\UserSubscribed;
-use App\Mail\WelcomeMail;
 use App\Models\User;
-use App\Rules\GoogleCaptchav3;
-use Illuminate\Auth\Events\PasswordReset;
+use App\Events\UserSubscribed;
+use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\ForgotPasswordRequest;
+use App\Http\Requests\Auth\ResetPasswordRequest;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Facades\Password as FacadesPassword;
-use Illuminate\View\View;
-use function Laravel\Prompts\password;
 use Illuminate\Http\RedirectResponse;
 
 class AuthController extends Controller
 {
-    //
     //Register or Create New User
-    public function register(Request $request): RedirectResponse
+    public function register(RegisterRequest $request): RedirectResponse
     {
-        $fields = $request->validate([
-            'name' => ['required', 'min:5', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'confirmed', Password::min(8)->max(12)->mixedCase()->letters()->numbers()->symbols()],
-            // 'g-recaptcha-response' => ['required', new GoogleCaptchav3('submitRegister', .5)]
-        ],
-            [
-                'name.required' => 'نام و نام خانوادگی خود را وارد نمایید!',
-                'name.max' => 'نام و نام خانوادگی باید حدااکثر 225 کارکتر باشد!',
-                'name.min' => 'نام و نام خانوادگی باید حدااقل 5 کارکتر باشد!',
-                'email.required' => 'ایمیل معتبر خود را وارد نمایید!',
-                'email.max' => 'ایمیل مورد نظر حداکثر باید ۲۵۵ کارکتر باشد!',
-                'email.email' => 'ایمیل معتبر وارد نمایید!',
-                'email.unique' => 'قبلا کاربری با این ایمیل ثبت نام کرده است!',
-                'password.required' => 'کلمه عبور خود را وارد نمایید!',
-                'password.min' => 'کلمه عبور باید حداقل 8 کارکتر باشد!',
-                'password.max' => 'کلمه عبور باید حداکثر 12 کارکتر باشد!',
-                'password.confirmed' => 'کلمه عبور با تکرار آن برابر نیست!',
-                'password.mixed' => 'کلمه عبور باید شامل اعداد کارکتر کوچک و بزرگ و کارکترهای ويژه (!@#$%^&*) باشد!',
-                'g-recaptcha-response.required' => 'اعتبار سنجی گوگل ریکپچا الزامی است!'
-            ]);
+        $fields = $request->validated();
 
         //Create User
         $user = User::create($fields);
         //Login User
         if ($user) {
             Auth::login($user);
-            event(new Registered($user, $request->password));
-            // Mail::to($request->email)->send(new WelcomeMail(Auth::user(), $request->password,true));
+            $request->session()->regenerate();
+
+            event(new Registered($user));
+
             if ($request->subscribe) {
                 event(new UserSubscribed($user));
             }
@@ -62,7 +40,6 @@ class AuthController extends Controller
             //Redirect User
             return redirect()->back()->with('error', 'مشکلی در ثبت نام شما پیش آمده است مجددا اقدام کنید!');
         }
-        //Send Mail
 
         //Redirect User
         return redirect()->route('home')->withErrors([
@@ -71,18 +48,10 @@ class AuthController extends Controller
 
     }
 
-    public function login(Request $request): RedirectResponse
+    public function login(LoginRequest $request): RedirectResponse
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required']
-        ],
-            [
-                'email.required' => 'ایمیل معتبر خود را وارد نمایید!',
-                'email.email' => 'ایمیل معتبر وارد نمایید!',
-                'password.required' => 'کلمه عبور خود را وارد نمایید!',
-            ]
-        );
+
+        $credentials = $request->validated();
         if (Auth::attempt($credentials, $request->remember)) {
             $request->session()->regenerate();
             return redirect()->route('home')->withErrors([
@@ -104,22 +73,20 @@ class AuthController extends Controller
         return redirect()->route('home')->withErrors(['success' => 'به امید دیدار مجدد شما']);
     }
 
-    public function sendResetPasswordLink(Request $request) :RedirectResponse
+    public function sendResetPasswordLink(ForgotPasswordRequest $request) :RedirectResponse
     {
-        $request->validate([
-            'email' => ['required','email']
-        ],[
-            'email.required'=>'ایمیل خود را وارد نمایید!',
-            'email.email'=>'ایمیل معتبر خود را وارد نمایید!'
-        ]);
 
         $status = FacadesPassword::sendResetLink(
-            $request->only('email')
+            $request->validated()
         );
-        return $status === FacadesPassword::RESET_LINK_SENT
-            ? back()->with(['success' =>'لینک بازیابی کلمه عبور به ایمیل شما ارسال شد.'])
-            : back()->withErrors(['error' => 'برای دریافت مجدد لینک بازیابی کلمه عبور چند لحظه صبر کنید']);
 
+        return $status === FacadesPassword::RESET_LINK_SENT
+            ? back()->with([
+                'success' => 'لینک بازیابی کلمه عبور به ایمیل شما ارسال شد.'
+            ])
+            : back()->withErrors([
+                'error' => 'برای دریافت مجدد لینک بازیابی کلمه عبور چند لحظه صبر کنید'
+            ]);
     }
 
     public function resetPasswordToken(string $token)
@@ -127,27 +94,12 @@ class AuthController extends Controller
         return view('auth.reset-password',['token'=>$token]);
     }
 
-    public function passwordUpdate(Request $request)
+    public function passwordUpdate(ResetPasswordRequest $request): RedirectResponse
     {
-        $request->validate([
-            'token' => ['required'],
-            'email' => ['required','email'],
-            'password' => ['required', 'confirmed', Password::min(8)->max(12)->mixedCase()->letters()->numbers()->symbols()],
-        ],
-        [
-            'token'=>'توکن معتبر نمی باشد!',
-            'email.required' => 'ایمیل معتبر خود را وارد نمایید!',
-            'email.max' => 'ایمیل مورد نظر حداکثر باید ۲۵۵ کارکتر باشد!',
-            'email.email' => 'ایمیل معتبر وارد نمایید!',
-            'password.required' => 'کلمه عبور خود را وارد نمایید!',
-            'password.min' => 'کلمه عبور باید حداقل 8 کارکتر باشد!',
-            'password.max' => 'کلمه عبور باید حداکثر 12 کارکتر باشد!',
-            'password.confirmed' => 'کلمه عبور با تکرار آن برابر نیست!',
-            'password.mixed' => 'کلمه عبور باید شامل اعداد کارکتر کوچک و بزرگ و کارکترهای ويژه (!@#$%^&*) باشد!',
-        ]
-        );
+
         $status = FacadesPassword::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
+            $request->validated(),
+
             function (User $user, string $password) {
                 $user->forceFill([
                     'password' => Hash::make($password)

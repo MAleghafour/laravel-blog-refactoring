@@ -5,14 +5,12 @@ namespace App\Mail;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
-
-
 
 class WelcomeMail extends Mailable
 {
@@ -21,9 +19,8 @@ class WelcomeMail extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct(public User $user,public $password,public $flag = false,public $socialMail = false)
+    public function __construct(public User $user)
     {
-        //public User $user,public $password
         //
     }
 
@@ -33,13 +30,11 @@ class WelcomeMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: new Address('develop.with.vahid@gmail.com',
-                'مدیریت وب سایت بلاگ زین'),
+            from: new Address(
+                'develop.with.vahid@gmail.com',
+                'مدیریت وب سایت بلاگ زین'
+            ),
             subject: 'بلاگ زین - خوش آمدید'
-          //  to: 'develop-with-vahid@gmail.com',
-//           replyTo: [
-//               ''
-//           ]
         );
     }
 
@@ -56,16 +51,10 @@ class WelcomeMail extends Mailable
     /**
      * Get the attachments for the message.
      *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
+     * @return array<int, Attachment>
      */
     public function attachments(): array
     {
-       if($this->flag){
-           return [
-//               Attachment::fromUrl('https://www.chilliapple.co.uk/blog/app/uploads/2022/02/imgpsh_fullsize_anim-scaled.jpg')->as('test.jpg')->withMime('image/jpg'),
-           ];
-       }
-       return [];
-
+        return [];
     }
 }

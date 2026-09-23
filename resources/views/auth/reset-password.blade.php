@@ -36,7 +36,7 @@
                                 <!-- Password -->
                                 <div class="mb-3">
                                     <label class="form-label" for="exampleInputPassword1">رمز عبور</label>
-                                    <input type="text" name="password"
+                                    <input type="password" name="password"
                                            class="form-control @error('password') border-danger  @enderror"
                                            value="{{old('password')}}" id="exampleInputPassword1"
                                            placeholder="*********">

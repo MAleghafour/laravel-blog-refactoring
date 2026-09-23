@@ -5,10 +5,6 @@ margin: 0 auto;box-shadow: 0 0 5px 1px #f1eeee;overflow: hidden">
         <p class="title"><span>{{$user->name}}</span> عزیز : ضمن عرض خوش آمد گویی خوش حالیم که پذیرای شما در خانواده بزرگ بلاگ زین هستیم.</p>
         <p>اطلاعات کاربری شما به شرح زیر می باشد</p>
         <p>نام کاربری : <span style="font-weight: bold">{{$user->email}}</span></p>
-        <p> کلمه عبور : <span style="font-weight: bold">{{$password}}</span></p>
-        @if($socialMail)
-        <div class="alert alert-info my-4">کاربر گرامی : کلمه عبور شما به صورت خودکار توسط سیستم ایجاد شده است در صورت تمایل با مراجعه به پروفایل خود می توانید نسبت به تغیر آن اقدام نمایید.</div>
-        @endif
     </div>
     <div class="mailFooter" style="display:flex;justify-content:center;align-items:center;height:48px;padding:0 20px;background: #f7f7f7;">
         <a href="www.blogzin.com" style="text-decoration: none">www.blogzin.com</a>
