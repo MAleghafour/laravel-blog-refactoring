@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use Intervention\Image\Laravel\Facades\Image;
+use App\Models\dashboard\Article;
+use Illuminate\Support\Facades\File;
 
 class FileUploadService
 {
@@ -47,16 +49,53 @@ class FileUploadService
         return false;
     }
 
-    public function processThumbnail($file) :array
+
+    /**
+     * Generate article thumbnails and clean up completed files on failure.
+     *
+     * Prevents orphaned thumbnails when a later size fails.
+     */
+    public function processThumbnail($file): array
     {
         $names = [];
-        foreach ($this->thumbnailDimension as $size => $dimensions) {
-            $image = $this->resize($file, $dimensions[0], $dimensions[1]);
-            $image = $this->addWaterMark($image);
-            //$image->save(public_path().'/thumbnails/t.jpg');
-            $names["thumbnail_{$size}"] = $this->upload($file, $image, $size);
+
+        try {
+            foreach ($this->thumbnailDimension as $size => $dimensions) {
+                $image = $this->resize(
+                    $file,
+                    $dimensions[0],
+                    $dimensions[1]
+                );
+
+                $image = $this->addWaterMark($image);
+
+                $names["thumbnail_{$size}"] = $this->upload(
+                    $file,
+                    $image,
+                    $size
+                );
+            }
+
+            return $names;
+
+        } catch (\Throwable $exception) {
+
+            // Remove thumbnails successfully created by this upload.
+            foreach ($names as $column => $filename) {
+                $size = substr($column, strlen('thumbnail_'));
+                $path = $this->findUploadPath($size) . $filename;
+
+                if (File::exists($path) && ! File::delete($path)) {
+                    throw new \RuntimeException(
+                        'Failed to clean up an uploaded thumbnail.',
+                        0,
+                        $exception
+                    );
+                }
+            }
+
+            throw $exception;
         }
-        return $names;
     }
 
     private function resize($file, $width, $height)
@@ -95,7 +134,7 @@ class FileUploadService
         return $image;
     }
 
-    private function upload($file, $image,$type): string
+    protected function upload($file, $image,$type): string
     {
         $imageOriginalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         $imageExtenstion = $file->getClientOriginalExtension();
@@ -115,6 +154,43 @@ class FileUploadService
             default => public_path('uploads/file_manager') . DIRECTORY_SEPARATOR,
         };
 
+    }
+
+    public function deleteExclusiveThumbnails(array $thumbnails): void
+    {
+        $sizes = ['small', 'medium', 'large'];
+
+        foreach ($sizes as $size) {
+            $column = "thumbnail_{$size}";
+            $filename = $thumbnails[$column] ?? null;
+
+            if (! is_string($filename) || $filename === '') {
+                continue;
+            }
+
+            // Reject directory traversal and nested paths.
+            if (basename($filename) !== $filename ||
+                str_contains($filename, '\\')) {
+                throw new \InvalidArgumentException(
+                    'Invalid thumbnail filename.'
+                );
+            }
+
+            // Do not delete files referenced by another article.
+            if (Article::withTrashed()
+                ->where($column, $filename)
+                ->exists()) {
+                continue;
+            }
+
+            $path = public_path("uploads/thumbnails/{$size}/{$filename}");
+
+            if (File::exists($path) && ! File::delete($path)) {
+                throw new \RuntimeException(
+                    "Failed to delete thumbnail: {$filename}"
+                );
+            }
+        }
     }
 }
 

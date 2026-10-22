@@ -21,3 +21,8 @@ yarn-error.log
 /.vscode
 /.zed
 .env.testing
+
+# Ignore newly uploaded article thumbnails.
+/public/uploads/thumbnails/**/*.jpg
+/public/uploads/thumbnails/**/*.jpeg
+/public/uploads/thumbnails/**/*.png
