@@ -176,4 +176,25 @@ class ArticleUpdateValidationTest extends TestCase
 
         $this->assertSame('pending', $article->fresh()->status);
     }
+
+    public function test_published_article_rejects_content_removed_by_sanitizer(): void
+    {
+        $author = User::factory()->create(['role' => 'author']);
+        $article = $this->createArticle($author, 'published');
+
+        $data = $this->validData($article);
+
+        $data['body'] = '<script>'
+            . str_repeat('Hidden script content ', 10)
+            . '</script><p>Short</p>';
+
+        $this->actingAs($author)
+            ->put(route('article.update', $article), $data)
+            ->assertSessionHasErrors('body');
+
+        $article->refresh();
+
+        $this->assertSame('Original title', $article->title);
+        $this->assertSame('published', $article->status);
+    }
 }

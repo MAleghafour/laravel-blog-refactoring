@@ -15,7 +15,9 @@ class ArticleEditedMail extends Mailable
     public function __construct(
         public string $articleTitle,
         public string $explanation,
-        public int $articleId
+        public int $articleId,
+        public string $actorName,
+        public string $occurredAt
     ) {
     }
 

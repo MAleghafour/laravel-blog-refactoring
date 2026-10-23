@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\dashboard\article;
 
+use App\Services\ArticleHtmlSanitizer;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -111,8 +112,12 @@ class UpdateArticleRequest extends FormRequest
                         : $article->status);
 
                 if (in_array($targetStatus, ['pending', 'published'], true)) {
+                    // Validate the visible content after applying the storage allowlist.
+                    $sanitizedBody = app(ArticleHtmlSanitizer::class)
+                        ->sanitize($this->input('body'));
+
                     $text = html_entity_decode(
-                        strip_tags($this->input('body', '')),
+                        strip_tags($sanitizedBody ?? ''),
                         ENT_QUOTES | ENT_HTML5,
                         'UTF-8'
                     );

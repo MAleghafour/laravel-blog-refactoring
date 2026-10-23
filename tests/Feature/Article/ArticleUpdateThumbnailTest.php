@@ -5,6 +5,8 @@ namespace Tests\Feature\Article;
 use App\Models\User;
 use App\Models\dashboard\Article;
 use App\Services\FileUploadService;
+use App\Jobs\DeleteArticleThumbnailsJob;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Mockery;
@@ -141,8 +143,10 @@ class ArticleUpdateThumbnailTest extends TestCase
         $this->assertSame('old-small.jpg', $article->thumbnail_small);
     }
 
-    public function test_old_thumbnail_cleanup_failure_does_not_rollback_update(): void
+    public function test_old_thumbnail_cleanup_failure_queues_retry_without_rollback(): void
     {
+        Queue::fake();
+
         [$author, $article] = $this->createArticle();
 
         $service = Mockery::mock(FileUploadService::class);
@@ -163,9 +167,18 @@ class ArticleUpdateThumbnailTest extends TestCase
             ->assertRedirect(route('article.show', $article))
             ->assertSessionHas('success');
 
-        $this->assertSame(
-            'new-small.jpg',
-            $article->fresh()->thumbnail_small
+        $article->refresh();
+
+        $this->assertSame('Updated title', $article->title);
+        $this->assertSame('new-small.jpg', $article->thumbnail_small);
+
+        Queue::assertPushed(
+            DeleteArticleThumbnailsJob::class,
+            function (DeleteArticleThumbnailsJob $job) {
+                return $job->thumbnails === $this->oldThumbnails();
+            }
         );
+
+        Queue::assertPushed(DeleteArticleThumbnailsJob::class, 1);
     }
 }

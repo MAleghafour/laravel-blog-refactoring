@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\dashboard\ArticleController;
 use App\Http\Controllers\dashboard\CategoryController;
 use App\Http\Controllers\dashboard\FileManagerController;
+use App\Http\Controllers\dashboard\DashboardController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -72,11 +73,16 @@ Route::prefix('/dashboard')->middleware('auth')->group(function(){
     });
 
     Route::middleware('role:author|admin')->group(function (){
-        Route::get('/',function (){
-            return view ('dashboard.index');
+        Route::get('/', [DashboardController::class, 'index'])
+            ->name('dashboard.index');
+
+        // Keep legacy article URLs working without exposing obsolete views.
+        Route::get('/news', function () {
+            return redirect()->route('article.index');
         });
-        Route::get('/news',function (){
-            return view ('dashboard.allNews');
+
+        Route::get('/news/edit', function () {
+            return redirect()->route('article.index');
         });
 
         // Article management lists
@@ -103,9 +109,6 @@ Route::prefix('/dashboard')->middleware('auth')->group(function(){
         // Standard Article CRUD
         Route::resource('article', ArticleController::class);
 
-        Route::get('/news/edit',function (){
-                return view ('dashboard.editNews');
-            });
         Route::get('/profile',function (){
             return view ('dashboard.editNews');
         });

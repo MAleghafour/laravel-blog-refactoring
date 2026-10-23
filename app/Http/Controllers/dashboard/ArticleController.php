@@ -12,7 +12,7 @@ use App\Http\Requests\dashboard\article\StoreArticleRequest;
 use App\Http\Requests\dashboard\article\SubmitArticleForReviewRequest;
 use App\Http\Requests\dashboard\article\WithdrawArticleRequest;
 use App\Http\Requests\dashboard\article\UpdateArticleRequest;
-use App\Jobs\SendArticleEditedMailJob;
+use App\Jobs\SendArticleNotificationJob;
 use Illuminate\Http\Request;
 use Illuminate\HTTp\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -296,6 +296,22 @@ class ArticleController extends Controller
                 );
         }
 
+        // Dispatch only after the correction transaction commits.
+        try {
+            SendArticleNotificationJob::dispatch(
+                SendArticleNotificationJob::RETURNED,
+                $article->author->email,
+                $article->title ?? 'بدون عنوان',
+                $validated['explanation'],
+                $article->id,
+                auth()->user()->name,
+                now()->toIso8601String()
+            );
+        } catch (\Throwable $exception) {
+            // Email queue failure must not undo the correction decision.
+            report($exception);
+        }
+
         return redirect()
             ->route('article.show', $article)
             ->with(
@@ -357,7 +373,15 @@ class ArticleController extends Controller
                 $data = array_merge($data, $thumbnails);
             }
 
-            Article::create($data);
+            DB::transaction(function () use ($data) {
+                $article = Article::create($data);
+
+                $article->events()->create([
+                    'actor_id' => auth()->id(),
+                    'event_type' => 'created',
+                    'explanation' => null,
+                ]);
+            });
 
             return redirect()
                 ->route('article.index')
@@ -701,30 +725,41 @@ class ArticleController extends Controller
         }
 
         // Delete old thumbnails only after the database commit.
+        // Retry failed cleanup asynchronously after the committed update.
         if (! empty($newThumbnails)) {
             try {
                 $this->FileUploadService->deleteExclusiveThumbnails(
                     $oldThumbnails
                 );
             } catch (\Throwable $cleanupException) {
-                // A cleanup failure must not invalidate a committed update.
                 report($cleanupException);
+
+                try {
+                    DeleteArticleThumbnailsJob::dispatch($oldThumbnails)
+                        ->afterCommit();
+                } catch (\Throwable $dispatchException) {
+                    // Preserve the committed edit even if retry scheduling fails.
+                    report($dispatchException);
+                }
             }
         }
 
-        // Queue author notification only after the update has committed.
+        // Notify the original author after the database commit.
         if ($isAdmin && (int) $article->author_id !== (int) auth()->id()) {
             try {
                 $article->refresh();
 
-                SendArticleEditedMailJob::dispatch(
+                SendArticleNotificationJob::dispatch(
+                    SendArticleNotificationJob::EDITED,
                     $article->author->email,
                     $article->title ?? 'بدون عنوان',
                     $validated['explanation'],
-                    $article->id
+                    $article->id,
+                    auth()->user()->name,
+                    now()->toIso8601String()
                 );
             } catch (\Throwable $exception) {
-                // Notification failure must not invalidate a committed edit.
+                // Notification failure must not undo the committed edit.
                 report($exception);
             }
         }

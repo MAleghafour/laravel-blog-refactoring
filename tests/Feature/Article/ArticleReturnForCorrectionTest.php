@@ -4,6 +4,10 @@ namespace Tests\Feature\Article;
 
 use App\Models\User;
 use App\Models\dashboard\Article;
+use App\Jobs\SendArticleNotificationJob;
+use App\Mail\ArticleReturnedForCorrectionMail;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -276,5 +280,69 @@ class ArticleReturnForCorrectionTest extends TestCase
             'article_id' => $article->id,
             'event_type' => 'returned_for_correction',
         ]);
+    }
+
+    public function test_return_for_correction_dispatches_notification(): void
+    {
+        Queue::fake();
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $author = User::factory()->create(['role' => 'author']);
+
+        $article = Article::create([
+            'author_id' => $author->id,
+            'title' => 'Article title',
+            'slug' => 'return-mail-test',
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('article.return', $article), [
+                'lock_version' => $article->lock_version,
+                'explanation' => 'Please revise the introduction.',
+            ])
+            ->assertSessionHas('success');
+
+        $this->assertSame('draft', $article->fresh()->status);
+
+        Queue::assertPushed(
+            SendArticleNotificationJob::class,
+            function (SendArticleNotificationJob $job) use ($author, $article, $admin) {
+                return $job->type === SendArticleNotificationJob::RETURNED
+                    && $job->recipientEmail === $author->email
+                    && $job->articleId === $article->id
+                    && $job->explanation === 'Please revise the introduction.'
+                    && $job->actorName === $admin->name;
+            }
+        );
+
+        Queue::assertPushed(SendArticleNotificationJob::class, 1);
+    }
+
+    public function test_return_notification_job_sends_correct_email(): void
+    {
+        Mail::fake();
+
+        $job = new SendArticleNotificationJob(
+            SendArticleNotificationJob::RETURNED,
+            'author@example.com',
+            'Article title',
+            'Please revise the introduction.',
+            42,
+            'Site Admin',
+            '2026-10-23T12:00:00+00:00'
+        );
+
+        $job->handle();
+
+        Mail::assertSent(
+            ArticleReturnedForCorrectionMail::class,
+            function (ArticleReturnedForCorrectionMail $mail) {
+                return $mail->hasTo('author@example.com')
+                    && $mail->articleId === 42
+                    && $mail->explanation === 'Please revise the introduction.'
+                    && $mail->actorName === 'Site Admin';
+            }
+        );
     }
 }

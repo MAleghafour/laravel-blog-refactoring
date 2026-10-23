@@ -22,17 +22,16 @@ Nav START -->
                 <ul class="navbar-nav navbar-nav-scroll mx-auto">
 
                     <!-- Nav item 1 Demos -->
-                    <li class="nav-item"><a class="nav-link" href="dashboard.html"><i class="bi bi-house-door me-1"></i>پیشخوان</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('dashboard.index') }}"><i class="bi bi-house-door me-1"></i>پیشخوان</a></li>
 
                     <!-- Nav item 2 Post -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="postMenu" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="bi bi-pencil me-1"></i>مدیریت اخبار</a>
                         <ul class="dropdown-menu" aria-labelledby="postMenu">
                             <!-- dropdown submenu -->
-                            <li> <a class="dropdown-item" href="dashboard-post-list.html">همه خبرها</a> </li>
+                            <li><a class="dropdown-item" href="{{ route('article.index') }}">همه مقالات</a></li>
 
-                            <li> <a class="dropdown-item" href="dashboard-post-create.html">ایجاد خبر</a> </li>
-                            <li> <a class="dropdown-item" href="dashboard-post-edit.html">ویرایش خبر</a> </li>
+                            <li><a class="dropdown-item" href="{{ route('article.create') }}">ایجاد مقاله</a></li>
                             <li> <a class="dropdown-item" href="dashboard-post-categories.html">افزودن دسته بندی</a> </li>
                         </ul>
                     </li>
@@ -68,7 +67,6 @@ Nav START -->
                                             </div>
                                     </li>
                                 </ul>
-
                             </div>
                             <div class="card-body p-0 ">
                                 <ul class="list-group list-unstyled list-group-flush m-3">
@@ -81,9 +79,7 @@ Nav START -->
                                         </div>
                                     </li>
                                 </ul>
-
                             </div>
-
                         </div>
                     </div>
                     <!-- Notification dropdown menu END -->

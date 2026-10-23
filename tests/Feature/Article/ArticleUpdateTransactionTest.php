@@ -9,7 +9,7 @@ use App\Services\FileUploadService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
-use App\Jobs\SendArticleEditedMailJob;
+use App\Jobs\SendArticleNotificationJob;
 use Mockery;
 use Tests\TestCase;
 
@@ -73,6 +73,6 @@ class ArticleUpdateTransactionTest extends TestCase
 
         $this->assertDatabaseCount('article_events', 0);
 
-        Queue::assertNotPushed(SendArticleEditedMailJob::class);
+        Queue::assertNotPushed(SendArticleNotificationJob::class);
     }
 }

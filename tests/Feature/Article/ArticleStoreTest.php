@@ -231,4 +231,24 @@ class ArticleStoreTest extends TestCase
             }
         }
     }
+
+    public function test_creating_draft_records_event(): void
+    {
+        $author = User::factory()->create(['role' => 'author']);
+
+        $this->actingAs($author)
+            ->post(route('article.store'), [
+                'title' => 'New article',
+                'slug' => 'new-article',
+            ])
+            ->assertSessionHas('success');
+
+        $article = Article::where('slug', 'new-article')->firstOrFail();
+
+        $this->assertDatabaseHas('article_events', [
+            'article_id' => $article->id,
+            'actor_id' => $author->id,
+            'event_type' => 'created',
+        ]);
+    }
 }

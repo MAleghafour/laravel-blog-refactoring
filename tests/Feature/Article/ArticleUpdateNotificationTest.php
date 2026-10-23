@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Article;
 
-use App\Jobs\SendArticleEditedMailJob;
+use App\Jobs\SendArticleNotificationJob;
 use App\Mail\ArticleEditedMail;
 use App\Models\User;
 use App\Models\dashboard\Article;
@@ -50,16 +50,19 @@ class ArticleUpdateNotificationTest extends TestCase
         $this->assertSame('Updated title', $article->fresh()->title);
 
         Queue::assertPushed(
-            SendArticleEditedMailJob::class,
-            function (SendArticleEditedMailJob $job) use ($author, $article) {
-                return $job->recipientEmail === $author->email
+            SendArticleNotificationJob::class,
+            function (SendArticleNotificationJob $job) use ($author, $article, $admin) {
+                return $job->type === SendArticleNotificationJob::EDITED
+                    && $job->recipientEmail === $author->email
                     && $job->articleId === $article->id
                     && $job->articleTitle === 'Updated title'
-                    && $job->explanation === 'Corrected article content.';
+                    && $job->explanation === 'Corrected article content.'
+                    && $job->actorName === $admin->name
+                    && $job->occurredAt !== '';
             }
         );
 
-        Queue::assertPushed(SendArticleEditedMailJob::class, 1);
+        Queue::assertPushed(SendArticleNotificationJob::class, 1);
     }
 
     public function test_admin_edit_of_own_article_does_not_dispatch_notification(): void
@@ -77,7 +80,7 @@ class ArticleUpdateNotificationTest extends TestCase
             ])
             ->assertSessionHas('success');
 
-        Queue::assertNotPushed(SendArticleEditedMailJob::class);
+        Queue::assertNotPushed(SendArticleNotificationJob::class);
     }
 
     public function test_stale_update_does_not_dispatch_notification(): void
@@ -95,18 +98,21 @@ class ArticleUpdateNotificationTest extends TestCase
             ->put(route('article.update', $article), $data)
             ->assertSessionHas('error');
 
-        Queue::assertNotPushed(SendArticleEditedMailJob::class);
+        Queue::assertNotPushed(SendArticleNotificationJob::class);
     }
 
     public function test_job_sends_mail_to_article_author(): void
     {
         Mail::fake();
 
-        $job = new SendArticleEditedMailJob(
+        $job = new SendArticleNotificationJob(
+            SendArticleNotificationJob::EDITED,
             'author@example.com',
             'Updated title',
             'Corrected article content.',
-            42
+            42,
+            'Site Admin',
+            '2026-10-23T12:00:00+00:00'
         );
 
         $job->handle();
