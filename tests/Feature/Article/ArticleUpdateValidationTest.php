@@ -2,9 +2,9 @@
 
 namespace Tests\Feature\Article;
 
-use App\Models\User;
 use App\Models\dashboard\Article;
 use App\Models\dashboard\Category;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -17,15 +17,15 @@ class ArticleUpdateValidationTest extends TestCase
         string $status = 'draft'
     ): Article {
         $category = Category::create([
-            'name' => 'Technology',
-            'slug' => 'technology-' . uniqid(),
+            'name' => 'Technology-'.uniqid(),
+            'slug' => 'technology-'.uniqid(),
         ]);
 
         return Article::create([
             'author_id' => $author->id,
             'title' => 'Original title',
-            'slug' => 'original-' . uniqid(),
-            'body' => '<p>' . str_repeat('Article content ', 5) . '</p>',
+            'slug' => 'original-'.uniqid(),
+            'body' => '<p>'.str_repeat('Article content ', 5).'</p>',
             'category_id' => $category->id,
             'status' => $status,
         ]);
@@ -36,7 +36,7 @@ class ArticleUpdateValidationTest extends TestCase
         return [
             'title' => 'Updated title',
             'slug' => $article->slug,
-            'body' => '<p>' . str_repeat('Updated content ', 5) . '</p>',
+            'body' => '<p>'.str_repeat('Updated content ', 5).'</p>',
             'category_id' => $article->category_id,
             'lock_version' => $article->lock_version,
         ];
@@ -185,8 +185,8 @@ class ArticleUpdateValidationTest extends TestCase
         $data = $this->validData($article);
 
         $data['body'] = '<script>'
-            . str_repeat('Hidden script content ', 10)
-            . '</script><p>Short</p>';
+            .str_repeat('Hidden script content ', 10)
+            .'</script><p>Short</p>';
 
         $this->actingAs($author)
             ->put(route('article.update', $article), $data)

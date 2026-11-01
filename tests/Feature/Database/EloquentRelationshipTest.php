@@ -2,9 +2,10 @@
 
 namespace Tests\Feature\Database;
 
-use App\Models\User;
 use App\Models\dashboard\Article;
 use App\Models\dashboard\Category;
+use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -132,7 +133,7 @@ class EloquentRelationshipTest extends TestCase
         );
     }
 
-    public function test_deleting_category_cascades_to_articles(): void
+    public function test_deleting_category_with_articles_is_restricted(): void
     {
         $user = User::factory()->create();
         $category = Category::create([
@@ -157,10 +158,24 @@ class EloquentRelationshipTest extends TestCase
             'status' => 'review',
         ]);
 
-        $category->delete();
+        $article->delete();
 
-        $this->assertDatabaseMissing('articles', [
-            'id' => $article->id,
+        $deletionWasRestricted = false;
+
+        try {
+            $category->delete();
+        } catch (QueryException) {
+            $deletionWasRestricted = true;
+        }
+
+        $this->assertTrue($deletionWasRestricted);
+        $this->assertDatabaseHas('categories', [
+            'id' => $category->id,
         ]);
+        $this->assertDatabaseHas('articles', [
+            'id' => $article->id,
+            'category_id' => $category->id,
+        ]);
+        $this->assertSoftDeleted($article);
     }
 }

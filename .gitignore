@@ -26,3 +26,7 @@ yarn-error.log
 /public/uploads/thumbnails/**/*.jpg
 /public/uploads/thumbnails/**/*.jpeg
 /public/uploads/thumbnails/**/*.png
+
+# Ignore local database backups and temporary patch output.
+/backups/*.sqlite
+/codex-changes.diff

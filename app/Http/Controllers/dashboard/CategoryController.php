@@ -3,87 +3,329 @@
 namespace App\Http\Controllers\dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\dashboard\category\DestroyCategoryRequest;
+use App\Http\Requests\dashboard\category\StoreCategoryRequest;
+use App\Http\Requests\dashboard\category\UpdateCategoryRequest;
+use App\Models\dashboard\Article;
 use App\Models\dashboard\Category;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
-
 
 class CategoryController extends Controller
 {
-    //
     public function index(): View
     {
-        //$categories = Category::all();
-        //$categories = Category::orderBy('id', 'desc')->get();
-        //$categories = Category::withCount('articles')->orderBy('id', 'desc')->get();
-        $categories = Category::withCount('articles')->orderBy('id', 'desc')->paginate(3);
+        $categories = Category::withCount('articles')
+            ->orderBy('name')
+            ->orderBy('id')
+            ->paginate(15);
+
         $categoryCount = Category::count();
-        //$users = ['vahid','erfan','sara'];
-        return view('dashboard.category', compact(['categories', 'categoryCount']));
+
+        return view('dashboard.category', compact('categories', 'categoryCount'));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreCategoryRequest $request): RedirectResponse
     {
-        $request->validate([
-            'name' => ['required', 'string', 'max:50', 'unique:categories,name'],
-            'slug' => ['required', 'string', 'max:50', 'unique:categories,slug'],
-            'description' => ['nullable', 'string'],
-            'icon' => ['required'],
-        ], [
-            'name.required' => 'برای دسته بندی نام انتخاب نمایید.',
-            'name.max' => 'نام حداکثر می تواند شامل ۵۰ حرف باشد.',
-            'name.unique' => 'این نام قبلا ثبت شده است نام دیگری انتخاب نمایید.',
-            'slug.required' => 'برای دسته بندی شناسه لاتین انتخاب نمایید.',
-            'slug.max' => 'نام حداکثر می تواند شامل ۵۰ حرف باشد.',
-            'slug.unique' => 'شناسه ای با این نام قبلا ثبت شده است نام دیگری انتخاب نمایید.',
-            'slug.slug' => 'فرمت شناسه صحیح نمی باشد اگر شناسه بیش از یک بخش دارد هر بخش را با ( - ) از هم جدا نمایید.',
-            'icon.required' => 'برای دسته بندی آیکون انتخاب نمایید.'
+        $data = $request->safe()->only([
+            'name',
+            'slug',
+            'description',
+            'icon',
         ]);
-        //Category::create($fields);
-        //$store = Category::create($request->all());
 
-//        if($store){
-//            return redirect()->back('/')->with('success','ok');
-//        }
-//        return redirect()->back('/')->witherrors('success','error');
-        return Category::create($request->all()) ? redirect()->back()->with('success', 'دسته بندی مورد نظر شما با موفقیت ایجاد گردید') : redirect()->back()->with('error', 'خطایی در ثبت دسته بندی رخ داده است!');
+        try {
+            // Database constraints close validation race windows.
+            Category::create($data);
+        } catch (QueryException $exception) {
+            $message = $exception->getMessage();
+            $isExpectedConstraintFailure = str_contains(
+                $message,
+                'UNIQUE constraint failed: categories.name'
+            ) || str_contains(
+                $message,
+                'UNIQUE constraint failed: categories.slug'
+            ) || str_contains(
+                $message,
+                'category slug conflicts with category_slug_histories.slug'
+            );
+
+            if ($isExpectedConstraintFailure) {
+                return redirect()
+                    ->route('category.index')
+                    ->withInput()
+                    ->with(
+                        'error',
+                        'نام یا نامک انتخاب‌شده قبلاً استفاده شده است.'
+                    );
+            }
+
+            throw $exception;
+        }
+
+        return redirect()
+            ->route('category.index')
+            ->with('success', 'دسته‌بندی با موفقیت ایجاد شد.');
     }
 
-    public function edit(int $id): mixed
+    public function edit(int $id): RedirectResponse
     {
-        //$category = Category::findOrfail($id); //Fetch Category By ID
-        $category = Category::find($id); //Fetch Category By ID
-//     return view('dashboard.editCategory',compact(['category']));
-        return $category ? view('dashboard.editCategory', compact(['category'])) : redirect()->route('category.index')->with('error', 'دسته بندی مورد نظر پیدا نشد!');
+        $category = Category::find($id);
+
+        if ($category === null) {
+            return redirect()
+                ->route('category.index')
+                ->with('error', 'دسته بندی مورد نظر پیدا نشد!');
+        }
+
+        return redirect()
+            ->route('category.index')
+            ->withInput([
+                'name' => $category->name,
+                'slug' => $category->slug,
+                'description' => $category->description,
+                'icon' => $category->icon,
+                'lock_version' => $category->lock_version,
+            ])
+            ->with('category_form_edit_id', $category->id);
     }
 
-    public function update(Request $request, $id) :RedirectResponse
-    {
+    public function update(
+        UpdateCategoryRequest $request,
+        $id
+    ): RedirectResponse {
         $category = Category::findOrfail($id);
-        $request->validate([
-            'name' => ['required', 'string', 'max:50'],
-            'slug' => ['required', 'string', 'max:50'],
-            'description' => ['nullable', 'string'],
-            'icon' => ['required'],
-        ], [
-            'name.required' => 'برای دسته بندی نام انتخاب نمایید.',
-            'name.max' => 'نام حداکثر می تواند شامل ۵۰ حرف باشد.',
-            'slug.required' => 'برای دسته بندی شناسه لاتین انتخاب نمایید.',
-            'slug.max' => 'نام حداکثر می تواند شامل ۵۰ حرف باشد.',
-            'slug.slug' => 'فرمت شناسه صحیح نمی باشد اگر شناسه بیش از یک بخش دارد هر بخش را با ( - ) از هم جدا نمایید.',
-            'icon.required' => 'برای دسته بندی آیکون انتخاب نمایید.'
+        $validated = $request->validated();
+        $expectedVersion = (int) $validated['lock_version'];
+        $data = $request->safe()->only([
+            'name',
+            'slug',
+            'description',
+            'icon',
         ]);
-        $categoryUpdate = $category->update($request->all());
-        return $categoryUpdate ? redirect()->route('category.index')->with('success', 'دسته بندی مورد نظر با موفقیت بروزرسانی گردید. ') :redirect()->route('category.edit')->with('error', 'خطایی در بروزرسانی دسته بندی مورد نظر رخ داده است! ');
+
+        $changes = [];
+
+        foreach ($data as $field => $value) {
+            if ($category->getAttribute($field) !== $value) {
+                $changes[$field] = $value;
+            }
+        }
+
+        try {
+            $result = DB::transaction(function () use (
+                $category,
+                $expectedVersion,
+                $changes
+            ) {
+                if ($changes === []) {
+                    return Category::query()
+                        ->whereKey($category->id)
+                        ->where('lock_version', $expectedVersion)
+                        ->exists()
+                            ? 'unchanged'
+                            : 'stale';
+                }
+
+                $slugChanged = array_key_exists('slug', $changes);
+                $oldSlug = $category->slug;
+                $updateData = [
+                    ...$changes,
+                    'lock_version' => DB::raw('lock_version + 1'),
+                    'updated_at' => now(),
+                ];
+
+                // Compare and swap prevents overwriting a concurrent update.
+                $updated = Category::query()
+                    ->whereKey($category->id)
+                    ->where('lock_version', $expectedVersion)
+                    ->update($updateData);
+
+                if ($updated !== 1) {
+                    return 'stale';
+                }
+
+                if ($slugChanged) {
+                    $category->slugHistories()->create([
+                        'slug' => $oldSlug,
+                    ]);
+                }
+
+                return 'updated';
+            });
+        } catch (QueryException $exception) {
+            $message = $exception->getMessage();
+            $isExpectedConstraintFailure = str_contains(
+                $message,
+                'UNIQUE constraint failed: categories.name'
+            ) || str_contains(
+                $message,
+                'UNIQUE constraint failed: categories.slug'
+            ) || str_contains(
+                $message,
+                'UNIQUE constraint failed: category_slug_histories.slug'
+            ) || str_contains(
+                $message,
+                'category slug conflicts with category_slug_histories.slug'
+            ) || str_contains(
+                $message,
+                'category slug history conflicts with categories.slug'
+            );
+
+            if ($isExpectedConstraintFailure) {
+                return redirect()
+                    ->route('category.index')
+                    ->withInput()
+                    ->with('category_form_edit_id', $category->id)
+                    ->with(
+                        'error',
+                        'نام یا نامک انتخاب‌شده قبلاً استفاده شده است.'
+                    );
+            }
+
+            throw $exception;
+        }
+
+        if ($result === 'stale') {
+            return redirect()
+                ->route('category.index')
+                ->withInput()
+                ->with('category_form_edit_id', $category->id)
+                ->with(
+                    'error',
+                    'دسته‌بندی پس از باز شدن فرم تغییر کرده است. لطفاً صفحه را دوباره بارگذاری کنید.'
+                );
+        }
+
+        $successMessage = $result === 'updated'
+            ? 'دسته‌بندی با موفقیت به‌روزرسانی شد.'
+            : 'تغییری برای ذخیره وجود نداشت.';
+
+        return redirect()
+            ->route('category.index')
+            ->with('success', $successMessage);
 
     }
 
-    public function destroy(int $id): RedirectResponse{
-        $category = Category::findOrfail($id);
-        //$category->articles()->delete();
-        $categoryDestroy = $category->delete();
-        return $categoryDestroy ? redirect()->back()->with('success', 'دسته بندی مورد نظر با موفقیت حذف  گردید. ') :redirect()->back()->with('error', 'خطایی در حذف دسته بندی مورد نظر رخ داده است! ');
-    }
+    public function destroy(
+        DestroyCategoryRequest $request,
+        int $id
+    ): RedirectResponse {
+        $category = Category::find($id);
 
+        if ($category === null) {
+            return redirect()
+                ->route('category.index')
+                ->with(
+                    'error',
+                    'دسته‌بندی مورد نظر یافت نشد یا قبلاً حذف شده است.'
+                );
+        }
+
+        $expectedVersion = (int) $request->validated()['lock_version'];
+
+        try {
+            $result = DB::transaction(function () use (
+                $category,
+                $expectedVersion
+            ) {
+                // Soft-deleted articles must also block category deletion.
+                $hasArticles = Article::withTrashed()
+                    ->where('category_id', $category->id)
+                    ->exists();
+
+                if ($hasArticles) {
+                    return 'has_articles';
+                }
+
+                // Delete first so the current slug can pass history triggers.
+                $deleted = Category::query()
+                    ->whereKey($category->id)
+                    ->where('lock_version', $expectedVersion)
+                    ->delete();
+
+                if ($deleted !== 1) {
+                    return Category::query()
+                        ->whereKey($category->id)
+                        ->exists()
+                            ? 'stale'
+                            : 'missing';
+                }
+
+                $category->slugHistories()->create([
+                    'slug' => $category->slug,
+                ]);
+
+                return 'deleted';
+            });
+        } catch (QueryException $exception) {
+            $message = $exception->getMessage();
+
+            if (str_contains($message, 'FOREIGN KEY constraint failed')) {
+                return redirect()
+                    ->route('category.index')
+                    ->withInput()
+                    ->with(
+                        'error',
+                        'این دسته‌بندی دارای مقاله است و قابل حذف نیست.'
+                    );
+            }
+
+            $isExpectedSlugFailure = str_contains(
+                $message,
+                'UNIQUE constraint failed: category_slug_histories.slug'
+            ) || str_contains(
+                $message,
+                'category slug history conflicts with categories.slug'
+            );
+
+            if ($isExpectedSlugFailure) {
+                return redirect()
+                    ->route('category.index')
+                    ->withInput()
+                    ->with(
+                        'error',
+                        'حذف دسته‌بندی به دلیل تداخل نامک انجام نشد.'
+                    );
+            }
+
+            throw $exception;
+        }
+
+        if ($result === 'has_articles') {
+            return redirect()
+                ->route('category.index')
+                ->with(
+                    'error',
+                    'این دسته‌بندی دارای مقاله است و قابل حذف نیست.'
+                );
+        }
+
+        if ($result === 'stale') {
+            return redirect()
+                ->route('category.index')
+                ->with(
+                    'error',
+                    'دسته‌بندی پس از نمایش صفحه تغییر کرده است. لطفاً صفحه را دوباره بارگذاری کنید.'
+                );
+        }
+
+        if ($result === 'missing') {
+            return redirect()
+                ->route('category.index')
+                ->with(
+                    'error',
+                    'دسته‌بندی مورد نظر یافت نشد یا قبلاً حذف شده است.'
+                );
+        }
+
+        return redirect()
+            ->route('category.index')
+            ->with(
+                'success',
+                'دسته‌بندی با موفقیت حذف شد و نامک آن محفوظ ماند.'
+            );
+    }
 }
