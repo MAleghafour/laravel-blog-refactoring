@@ -1,66 +1,133 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Laravel Blog — Refactoring Project
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A phased refactoring of an educational Laravel blog application, with a focus on **maintainability, separation of concerns, authorization, data integrity, and automated testing**.
 
-## About Laravel
+The goal is to improve the existing codebase incrementally, selecting solutions based on actual requirements rather than adding unnecessary complexity.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+**Current stable milestone:** Phase 06 — Category Management.  
+**Next milestone:** Phase 07 — File Manager (in development; not included in this release).
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Key improvements
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Authentication & authorization
 
-## Learning Laravel
+- User registration, login, logout, and password-reset flows.
+- Role-based access to dashboard features (`admin`, `author`, and `subscriber`).
+- Article-level authorization through Laravel policies.
+- Social login integration through Laravel Socialite.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Article lifecycle
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+- Article creation, editing, and management with role-aware access.
+- Submission for review, administrator approval, return for correction, and withdrawal.
+- Soft deletion, trash management, restoration, and administrator-only permanent deletion.
+- Optimistic locking to help detect conflicting article modifications.
+- Queued notification and thumbnail-cleanup jobs.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Category management
 
-## Laravel Sponsors
+- Administrator-only category CRUD operations.
+- Form Request validation and slug uniqueness safeguards.
+- Category slug history and database-integrity checks.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Code organization & reliability
 
-### Premium Partners
+- Eloquent relationships and database constraints.
+- Form Requests, policies, and dedicated services for distinct responsibilities.
+- Database transactions for operations requiring consistent state changes.
+- Unit and Feature tests for application behavior and regression prevention.
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+> **Scope note:** Some original educational features and legacy views remain in the repository. In particular, the existing File Manager code is not the completed Phase 07 implementation.
 
-## Contributing
+## Tech stack
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+| Area | Technologies |
+| --- | --- |
+| Backend | PHP 8.2+, Laravel 12 (12.69.1 in the Phase 06 lockfile) |
+| Database | SQLite (default local configuration) |
+| Views & frontend tooling | Blade, Vite 5, Tailwind CSS 3 (declared dependency) |
+| Authentication integration | Laravel Socialite |
+| Image handling | Intervention Image |
+| Automated testing | PHPUnit 11 |
+| Code formatting | Laravel Pint |
 
-## Code of Conduct
+## Installation
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+**Prerequisites:** PHP 8.2+, Composer, Node.js, npm, and the required PHP extensions (including SQLite support for the default database configuration).
 
-## Security Vulnerabilities
+1. Clone the repository and enter the project directory:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+   ```bash
+   git clone <repository-url>
+   cd laravel-blog-refactoring
+   ```
 
-## License
+2. Install PHP and frontend dependencies:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+   ```bash
+   composer install
+   npm install
+   ```
+
+3. Create a local environment file and application key:
+
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+
+   On Windows PowerShell, `Copy-Item .env.example .env` is an alternative to `cp`.
+
+4. Create the SQLite database file if it does not already exist, then run migrations:
+
+   ```bash
+   php artisan migrate
+   ```
+
+   The expected SQLite file is `database/database.sqlite`. On PowerShell, create it if needed with `New-Item database/database.sqlite -ItemType File`.
+
+5. Build frontend assets and start the application:
+
+   ```bash
+   npm run build
+   php artisan serve
+   ```
+
+For local frontend development, use `npm run dev` in a separate terminal instead of building assets for each change.
+
+**Configuration notes:** The provided `.env.example` uses SQLite, database-backed queues/sessions, and the `log` mail driver. To process queued jobs, run `php artisan queue:work` separately. Social login requires valid OAuth credentials for the chosen provider.
+
+## Testing
+
+The project includes automated **Unit** and **Feature** tests covering:
+
+- Authentication, role middleware, and article authorization.
+- Article lifecycle actions, validation, notifications, and background jobs.
+- Category operations, slug handling, and access control.
+- Eloquent relationships, transaction safeguards, and selected UI behavior.
+
+**The full test suite passed before Phase 06 was finalized and committed.**
+
+Run the tests locally with:
+
+```bash
+php artisan test
+```
+
+## Development progress
+
+| Phase | Focus | Status |
+| --- | --- | --- |
+| 01 | Project baseline | Completed |
+| 02 | Codebase cleanup | Completed |
+| 03 | Database & Eloquent relationships | Completed |
+| 04 | Authentication & authorization | Completed |
+| 05 | Article management & review workflow | Completed |
+| 06 | Category management & safeguards | Completed |
+| 07 | File Manager refactoring | In progress — not in this release |
+
+This README is updated as new phases are completed and merged into the stable codebase.
+
+## Project scope
+
+This is an ongoing refactoring project built from an educational application. It demonstrates incremental improvements to existing software; it is **not presented as a production-ready application**.

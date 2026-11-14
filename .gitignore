@@ -30,3 +30,9 @@ yarn-error.log
 # Ignore local database backups and temporary patch output.
 /backups/*.sqlite
 /codex-changes.diff
+
+# Local SQLite database
+/database/database.sqlite
+
+# Runtime-generated article thumbnails
+/public/uploads/thumbnails/
